@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,Request
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import psycopg2
@@ -26,6 +26,13 @@ def root():
 @app.get("/hello/{name}")
 def say_hello(name: str):
     return {"message": f"Hello {name}"}
+
+@app.post("/image-recognize")
+async def getInformatin(info : Request):
+    req_info = await info.json()
+    return {
+        "status":"SUCCESS"
+    }
 
 @app.post("/search/{key}")
 def search(key: str):
@@ -82,3 +89,4 @@ def search(key: str):
     return {
         "message": filtered_val_reply
     }
+
