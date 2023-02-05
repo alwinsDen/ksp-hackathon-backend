@@ -12,6 +12,7 @@ from PyPDF2 import PdfMerger
 app = FastAPI()
 from deepface import DeepFace
 import threading
+import io
 origins = [
     "http://localhost:3000",
 ]
@@ -179,13 +180,13 @@ def search(key: str):
 
 @app.post("/pdf/")
 def generate_pdf(requests: dict):
-    merger = PdfMerger()
+    # merger = PdfMerger()
+    html_content = generate_html(requests["message"][0])
+    pdf = pdfkit.from_string(html_content,'out.pdf')
+    buffer = io.BytesIO(pdf)
+    buffer.seek(0)
+    return FileResponse(pdf)
 
-    for idx, request in enumerate(requests):
-        html_content = generate_html(request)
-        pdfkit.from_string(html_content, str(idx + '.pdf'))
-        merger.append(str(idx + '.pdf'))
-    return FileResponse(merger)
 def generate_html(request: dict):
     html_content = """
         <!DOCTYPE html>
@@ -211,35 +212,35 @@ def generate_html(request: dict):
                 <div style="float: left; font-size:24px;" class = 'data'>
                     <hr style = "width: 100%;"
         """
-    html_content += "<p><strong>Name:</strong>" + request.name + "</p>"
+    html_content += "<p><strong>Name:</strong>" + request["Person_Name"] + "</p>"
     html_content +='<hr style = "width: 100%;">'
-    html_content += "<p><strong>Age:</strong>" + request.age+"</p>"
+    html_content += "<p><strong>Age:</strong>" + str(request["Age"])+"</p>"
     html_content += '<hr style = "width: 100%;">'
-    html_content += "<p><strong>Gender:</strong>" + request.gender+ "</p>"
+    html_content += "<p><strong>Gender:</strong>" + request["Gender"]+ "</p>"
     html_content +='<hr style = "width: 100%;">'
-    html_content +="<p><strong>FIR No:</strong>" + request.FIR_No+"</p>"
+    html_content +="<p><strong>FIR No:</strong>" + request["FIRNo"]+"</p>"
     html_content +='<hr style = "width: 100%;"> </div>'
-    if request.image == None:
-        html_content += "<h1 style = 'width: 250px; height: 250px;'>NO IMAGE </h1>"
+    # if requestimage == None:
+    #     html_content += "<h1 style = 'width: 250px; height: 250px;'>NO IMAGE </h1>"
     #  <img src="./President_Barack_Obama.jpg" width = "250" height = "250" style = "float: right; border: 1px solid #000;">
     html_content += "<div style = 'width: 100%; margin-top: 1em; display: flex; justify-content: center; font-size: 24px;' class='data'>"
     html_content +='<hr style = "width: 100%;">'
-    html_content += '<p><strong>Date of Arrest:</strong>'+ request.date_of_arrest+'</p>'
+    html_content += '<p><strong>Date of Arrest:</strong>'+ request["Arrest_Date"]+'</p>'
     html_content +='<hr style = "width: 100%;">'
-    html_content +='<p><strong>Reason for Arrest:</strong>' + request.reason_for_arrest + '</p>'
+    html_content +='<p><strong>Reason for Arrest:</strong>' + request["Major_Head"] + '</p>'
     html_content +='<hr style = "width: 100%;">'
-    html_content +='<p><strong>Police Station Name:</strong>' + request.ps_name + '</p>'
+    html_content +='<p><strong>Police Station Name:</strong>' + request["PS_Name"] + '</p>'
     html_content +='<hr style = "width: 100%;">'
-    html_content +='<p><strong>District:</strong>' + request.district + '</p>'
+    html_content +='<p><strong>District:</strong>' + request["District_Name"] + '</p>'
     html_content +='<hr style = "width: 100%;">'
-    html_content += 'p><strong>State:</strong>' + request.state + '</p>'
-    html_content += """
-                </div>
-                <div style = 'padding-top: 3em;'>
-                    <h1>Fingerprint:</h1>
-                """
-    if request.fingerprint == None:
-        html_content += "<h1 style = 'width: 250px; height: 250px;'>NO FINGERPRINT </h1>"
+    html_content += 'p><strong>State:</strong>' + request["State"] + '</p>'
+    # html_content += """
+    #             </div>
+    #             <div style = 'padding-top: 3em;'>
+    #                 <h1>Fingerprint:</h1>
+    #             """
+    # if request["fingerprint"] == None:
+    #     html_content += "<h1 style = 'width: 250px; height: 250px;'>NO FINGERPRINT </h1>"
     # <img src="./fingerprint.jpg" style="margin-top: 1em;" width = "250" height="250">
     html_content += """
                 </div>
