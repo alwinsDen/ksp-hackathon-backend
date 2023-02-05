@@ -1,4 +1,4 @@
-from fastapi import FastAPI,Request
+from fastapi import FastAPI,Request,Form,UploadFile,File
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import psycopg2
@@ -28,8 +28,8 @@ def say_hello(name: str):
     return {"message": f"Hello {name}"}
 
 @app.post("/image-recognize")
-async def getInformatin(info : Request):
-    req_info = await info.json()
+async def getInformatin(assignment: str = Form(...), assignment_file: UploadFile = File(...)):
+    # req_info = await info.json()
     return {
         "status":"SUCCESS"
     }
