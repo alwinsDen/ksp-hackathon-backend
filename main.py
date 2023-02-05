@@ -1,11 +1,14 @@
 import os
-
+import pdfkit
 from fastapi import FastAPI,Request,Form,UploadFile,File,Path
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import psycopg2
 from sqlalchemy import create_engine
 import sqlalchemy as sa
+from starlette import schemas
+from fastapi.responses import FileResponse
+from PyPDF2 import PdfMerger
 app = FastAPI()
 from deepface import DeepFace
 import threading
@@ -116,6 +119,14 @@ def search(key: str):
     db_connection = alchemy_engine.connect()
     dataFrame = pd.read_sql_table("cleaned_KSP_hackathondata(1)", db_connection)
     all_df_set = list(dataFrame.columns.values.tolist())
+
+    alchemy_engine_2 = create_engine('postgresql+psycopg2://octavian:Cradle123#@kspmain2.postgres.database.azure.com:5432/postgres')
+    db_connection_2 = alchemy_engine.connect()
+    dataFrame_2 = pd.read_sql_table("icjs_main_data", db_connection)
+
+    frames = [dataFrame, dataFrame_2]
+    dataFrame = pd.concat(frames)
+
     search = key
     datatype_complete = {
         'State':"string",
@@ -166,3 +177,74 @@ def search(key: str):
         "message": filtered_val_reply
     }
 
+@app.post("/pdf/")
+def generate_pdf(requests: dict):
+    merger = PdfMerger()
+
+    for idx, request in enumerate(requests):
+        html_content = generate_html(request)
+        pdfkit.from_string(html_content, str(idx + '.pdf'))
+        merger.append(str(idx + '.pdf'))
+    return FileResponse(merger)
+def generate_html(request: dict):
+    html_content = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <style>
+                *{
+                    margin: 0;
+                    padding: 0;
+                    text-align: center;
+                }
+                .data > *{
+                    margin: 0.5em;
+                }
+            </style>
+        </head>
+        <body>
+            <div>
+                <img src="./ksp.png" width="100" height="100">
+                <h1 style = "padding-bottom: 1em;">Karnataka State Police</h1>
+            </div>
+            <div>
+                <div style="float: left; font-size:24px;" class = 'data'>
+                    <hr style = "width: 100%;"
+        """
+    html_content += "<p><strong>Name:</strong>" + request.name + "</p>"
+    html_content +='<hr style = "width: 100%;">'
+    html_content += "<p><strong>Age:</strong>" + request.age+"</p>"
+    html_content += '<hr style = "width: 100%;">'
+    html_content += "<p><strong>Gender:</strong>" + request.gender+ "</p>"
+    html_content +='<hr style = "width: 100%;">'
+    html_content +="<p><strong>FIR No:</strong>" + request.FIR_No+"</p>"
+    html_content +='<hr style = "width: 100%;"> </div>'
+    if request.image == None:
+        html_content += "<h1 style = 'width: 250px; height: 250px;'>NO IMAGE </h1>"
+    #  <img src="./President_Barack_Obama.jpg" width = "250" height = "250" style = "float: right; border: 1px solid #000;">
+    html_content += "<div style = 'width: 100%; margin-top: 1em; display: flex; justify-content: center; font-size: 24px;' class='data'>"
+    html_content +='<hr style = "width: 100%;">'
+    html_content += '<p><strong>Date of Arrest:</strong>'+ request.date_of_arrest+'</p>'
+    html_content +='<hr style = "width: 100%;">'
+    html_content +='<p><strong>Reason for Arrest:</strong>' + request.reason_for_arrest + '</p>'
+    html_content +='<hr style = "width: 100%;">'
+    html_content +='<p><strong>Police Station Name:</strong>' + request.ps_name + '</p>'
+    html_content +='<hr style = "width: 100%;">'
+    html_content +='<p><strong>District:</strong>' + request.district + '</p>'
+    html_content +='<hr style = "width: 100%;">'
+    html_content += 'p><strong>State:</strong>' + request.state + '</p>'
+    html_content += """
+                </div>
+                <div style = 'padding-top: 3em;'>
+                    <h1>Fingerprint:</h1>
+                """
+    if request.fingerprint == None:
+        html_content += "<h1 style = 'width: 250px; height: 250px;'>NO FINGERPRINT </h1>"
+    # <img src="./fingerprint.jpg" style="margin-top: 1em;" width = "250" height="250">
+    html_content += """
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+    return html_content
